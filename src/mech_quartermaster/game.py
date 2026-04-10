@@ -1,14 +1,14 @@
 """Main game loop and all screen logic."""
 
 import random
-from mech import Mech, Inventory
-from data import (CHASSIS_DATA, PARTS_CATALOG, MISSION_TYPES, WEAPON_NAMES, MECH_PRICES,
-                  OVERHEAD_BASE, OVERHEAD_PER_MECH, OVERHEAD_PER_TON)
-from campaigns.base import Campaign
-from campaigns import ALL_CAMPAIGNS
-from missions import simulate_mission
-import ui
-from ui import C, header, section, hr, prompt, menu, pause, clear, print_mech_detail
+from .mech import Mech, Inventory
+from .data import (CHASSIS_DATA, PARTS_CATALOG, MISSION_TYPES, WEAPON_NAMES, MECH_PRICES,
+                   OVERHEAD_BASE, OVERHEAD_PER_MECH, OVERHEAD_PER_TON)
+from .campaigns.base import Campaign
+from .campaigns import ALL_CAMPAIGNS
+from .missions import simulate_mission
+from . import ui
+from .ui import C, header, section, hr, prompt, menu, pause, clear, print_mech_detail
 
 
 # ─── Game State ──────────────────────────────────────────────────────────────

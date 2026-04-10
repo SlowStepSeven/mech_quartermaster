@@ -1,8 +1,8 @@
 """Mission simulation — generates damage to mechs after deployment."""
 
 import random
-from mech import Mech
-from data import MISSION_TYPES, LOCATIONS, CHASSIS_DATA, WEAPON_NAMES
+from .mech import Mech
+from .data import MISSION_TYPES, LOCATIONS, CHASSIS_DATA, WEAPON_NAMES
 
 
 def simulate_mission(mechs: list[Mech], mission_type: dict, damage_multiplier: float = 1.0) -> dict:
