@@ -16,6 +16,36 @@ from .ui import C, header, section, hr, prompt, menu, pause, clear, print_mech_d
 MAX_MECHS   = 8
 MAX_DEPLOYED = 4
 
+BATTLE_ORDERS = [
+    {
+        "name":        "Keep Your Distance",
+        "description": "Preserve the mechs — pull back, reduce exposure, avoid heavy contact.",
+        "effects":     "Damage -20%  |  Salvage -20%",
+        "damage_mult":  0.80,
+        "salvage_mult": 0.80,
+        "reward_mult":  1.00,
+        "success_mod":  0.00,
+    },
+    {
+        "name":        "Go All Out",
+        "description": "Maximum aggression — overwhelm the enemy and take everything left standing.",
+        "effects":     "Damage +35%  |  Salvage +50%  |  Success +10%",
+        "damage_mult":  1.35,
+        "salvage_mult": 1.50,
+        "reward_mult":  1.00,
+        "success_mod":  0.10,
+    },
+    {
+        "name":        "Show Off for the Client",
+        "description": "Put on a performance — the employer pays premium, but results are unpredictable.",
+        "effects":     "Payout +40%  |  Success: random ±20%",
+        "damage_mult":  1.00,
+        "salvage_mult": 1.00,
+        "reward_mult":  1.40,
+        "success_mod":  None,  # resolved at mission time
+    },
+]
+
 DIFFICULTIES = {
     "Easy": {
         "overhead_multiplier": 0.50,
@@ -226,87 +256,88 @@ def screen_inspect(gs: GameState):
 
 
 def screen_repair(gs: GameState):
-    clear()
-    header("REPAIR MECH")
-    print(f"  Tech Hours Available Today: {C.BOLD}{gs.tech_hours_remaining}{C.RESET}")
-    print()
-    for i, mech in enumerate(gs.mechs, 1):
-        ui.print_mech_overview(mech, show_index=i)
-    choice = prompt("Select mech to repair (0 to cancel)")
-    if not choice or choice == "0":
-        return
-    try:
-        idx = int(choice) - 1
-    except ValueError:
-        return
-    if not (0 <= idx < len(gs.mechs)):
-        return
-
-    mech = gs.mechs[idx]
-
     while True:
         clear()
-        header(f"REPAIR: {mech.callsign}")
-        print(f"  Tech hours remaining: {C.BOLD}{gs.tech_hours_remaining}/{gs.tech_hours_per_day}{C.RESET}")
-
-        # Build repair job list fresh each loop
-        jobs = []
-        for loc_name, comp in mech.components.items():
-            if comp.armor < comp.max_armor:
-                part = mech.armor_plate_part
-                cost, hours, _ = PARTS_CATALOG[part]
-                jobs.append({
-                    "label": f"Repair armor: {loc_name} ({comp.armor}/{comp.max_armor})",
-                    "part": part, "hours": hours,
-                    "action": ("armor", loc_name), "have": gs.inventory.stock(part),
-                })
-            if comp.structure < comp.max_structure:
-                part = mech.structure_brace_part
-                cost, hours, _ = PARTS_CATALOG[part]
-                jobs.append({
-                    "label": f"Repair structure: {loc_name} ({comp.structure}/{comp.max_structure})",
-                    "part": part, "hours": hours,
-                    "action": ("structure", loc_name), "have": gs.inventory.stock(part),
-                })
-            for item in comp.destroyed_equipment:
-                if item in WEAPON_NAMES and item in PARTS_CATALOG:
-                    cost, hours, _ = PARTS_CATALOG[item]
-                    jobs.append({
-                        "label": f"Replace {item}: {loc_name}",
-                        "part": item, "hours": hours,
-                        "action": ("equipment", loc_name, item), "have": gs.inventory.stock(item),
-                    })
-
-        if not jobs:
-            print(f"\n  {C.GREEN}No repairs needed — mech is at full condition.{C.RESET}")
-            pause()
-            return
-
-        section("Available Repair Jobs")
-        print(f"  {'#':<3} {'Job':<45} {'Part':<25} {'Stock':<6} {'Hours'}")
-        hr()
-        for i, job in enumerate(jobs, 1):
-            stock_color = C.GREEN if job["have"] > 0 else C.RED
-            hour_color  = C.RED if job["hours"] > gs.tech_hours_remaining else ""
-            print(f"  {i:<3} {job['label']:<45} {job['part']:<25} "
-                  f"{stock_color}{job['have']:<6}{C.RESET} {hour_color}{job['hours']}h{C.RESET}")
-
-        print(f"\n  Type job number to perform repair, 'all' to do all possible, 0 to exit.")
-
-        choice = prompt("Select job")
+        header("REPAIR MECH")
+        print(f"  Tech Hours Available Today: {C.BOLD}{gs.tech_hours_remaining}{C.RESET}")
+        print()
+        for i, mech in enumerate(gs.mechs, 1):
+            ui.print_mech_overview(mech, show_index=i)
+        choice = prompt("Select mech to repair (0 to cancel)")
         if not choice or choice == "0":
             return
-        if choice.lower() == "all":
-            performed = sum(1 for job in jobs if _do_repair(gs, mech, job))
-            print(f"\n  {C.GREEN}Completed {performed} repair job(s).{C.RESET}")
-            pause()
-            continue   # redraw with updated state
         try:
-            jidx = int(choice) - 1
-            if 0 <= jidx < len(jobs):
-                _do_repair(gs, mech, jobs[jidx], verbose=True)
+            idx = int(choice) - 1
         except ValueError:
-            pass
+            continue
+        if not (0 <= idx < len(gs.mechs)):
+            continue
+
+        mech = gs.mechs[idx]
+
+        while True:
+            clear()
+            header(f"REPAIR: {mech.callsign}")
+            print(f"  Tech hours remaining: {C.BOLD}{gs.tech_hours_remaining}/{gs.tech_hours_per_day}{C.RESET}")
+
+            # Build repair job list fresh each loop
+            jobs = []
+            for loc_name, comp in mech.components.items():
+                if comp.armor < comp.max_armor:
+                    part = mech.armor_plate_part
+                    cost, hours, _ = PARTS_CATALOG[part]
+                    jobs.append({
+                        "label": f"Repair armor: {loc_name} ({comp.armor}/{comp.max_armor})",
+                        "part": part, "hours": hours,
+                        "action": ("armor", loc_name), "have": gs.inventory.stock(part),
+                    })
+                if comp.structure < comp.max_structure:
+                    part = mech.structure_brace_part
+                    cost, hours, _ = PARTS_CATALOG[part]
+                    jobs.append({
+                        "label": f"Repair structure: {loc_name} ({comp.structure}/{comp.max_structure})",
+                        "part": part, "hours": hours,
+                        "action": ("structure", loc_name), "have": gs.inventory.stock(part),
+                    })
+                for item in comp.destroyed_equipment:
+                    if item in WEAPON_NAMES and item in PARTS_CATALOG:
+                        cost, hours, _ = PARTS_CATALOG[item]
+                        jobs.append({
+                            "label": f"Replace {item}: {loc_name}",
+                            "part": item, "hours": hours,
+                            "action": ("equipment", loc_name, item), "have": gs.inventory.stock(item),
+                        })
+
+            if not jobs:
+                print(f"\n  {C.GREEN}No repairs needed — mech is at full condition.{C.RESET}")
+                pause()
+                break
+
+            section("Available Repair Jobs")
+            print(f"  {'#':<3} {'Job':<45} {'Part':<25} {'Stock':<6} {'Hours'}")
+            hr()
+            for i, job in enumerate(jobs, 1):
+                stock_color = C.GREEN if job["have"] > 0 else C.RED
+                hour_color  = C.RED if job["hours"] > gs.tech_hours_remaining else ""
+                print(f"  {i:<3} {job['label']:<45} {job['part']:<25} "
+                      f"{stock_color}{job['have']:<6}{C.RESET} {hour_color}{job['hours']}h{C.RESET}")
+
+            print(f"\n  Type job number to perform repair, 'all' to do all possible, 0 to go back.")
+
+            choice = prompt("Select job")
+            if not choice or choice == "0":
+                break
+            if choice.lower() == "all":
+                performed = sum(1 for job in jobs if _do_repair(gs, mech, job))
+                print(f"\n  {C.GREEN}Completed {performed} repair job(s).{C.RESET}")
+                pause()
+                continue
+            try:
+                jidx = int(choice) - 1
+                if 0 <= jidx < len(jobs):
+                    _do_repair(gs, mech, jobs[jidx], verbose=True)
+            except ValueError:
+                pass
 
 
 def _do_repair(gs: GameState, mech: Mech, job: dict, verbose: bool = False) -> bool:
@@ -352,12 +383,12 @@ def _part_sell_price(part_name: str) -> int:
 
 
 def _mech_sell_price(mech: Mech) -> int:
-    """Offer price for a mech: condition-scaled base price at 25–50%."""
+    """Offer price for a mech: condition-scaled base price at 50–100%."""
     base = MECH_PRICES.get(mech.chassis, 0)
     total_current = sum(c.armor + c.structure for c in mech.components.values())
     total_max     = sum(c.max_armor + c.max_structure for c in mech.components.values())
     condition = total_current / total_max if total_max > 0 else 0
-    return int(base * condition * random.uniform(0.25, 0.50))
+    return int(base * condition * random.uniform(0.50, 1.00))
 
 
 def screen_parts(gs: GameState):
@@ -568,15 +599,57 @@ def screen_deploy(gs: GameState):
         return
 
     mission_type = available[midx]
-    print(f"\n  Deploying on: {C.BOLD}{mission_type['name']}{C.RESET}")
-    print(f"  Mechs deploying: {', '.join(m.callsign for m in ready)}")
-    confirm = prompt("Confirm deployment? (y/n)")
+
+    # ── Battle Orders ─────────────────────────────────────────────────────────
+    clear()
+    header("BATTLE ORDERS")
+    print(f"  Contract:  {C.BOLD}{mission_type['name']}{C.RESET}")
+    print(f"  Deploying: {', '.join(m.callsign for m in ready)}")
+    section("Select Battle Orders")
+    for i, order in enumerate(BATTLE_ORDERS, 1):
+        print(f"  [{C.CYAN}{i}{C.RESET}] {C.BOLD}{order['name']}{C.RESET}")
+        print(f"      {order['description']}")
+        print(f"      {C.DIM}{order['effects']}{C.RESET}")
+        print()
+    order_choice = prompt("Select orders (0 to cancel)")
+    if not order_choice or order_choice == "0":
+        return
+    try:
+        oidx = int(order_choice) - 1
+    except ValueError:
+        return
+    if not (0 <= oidx < len(BATTLE_ORDERS)):
+        return
+    order = BATTLE_ORDERS[oidx]
+
+    # Resolve random success modifier for "Show Off"
+    if order["success_mod"] is None:
+        resolved_success_mod = random.uniform(-0.20, 0.20)
+    else:
+        resolved_success_mod = order["success_mod"]
+
+    # Build a modified copy of mission_type so the originals are unchanged
+    mt = dict(mission_type)
+    min_pay, max_pay = mt["c_bill_reward"]
+    mt["c_bill_reward"] = (
+        int(min_pay * order["reward_mult"]),
+        int(max_pay * order["reward_mult"]),
+    )
+    mt["salvage_scale"]       = mt["salvage_scale"]       * order["salvage_mult"]
+    mt["mech_salvage_chance"] = mt["mech_salvage_chance"] * order["salvage_mult"]
+
+    adjusted_damage_mult = gs._diff["damage_multiplier"] * order["damage_mult"]
+
+    print(f"\n  Orders issued: {C.BOLD}{order['name']}{C.RESET}")
+    print(f"  {C.DIM}{order['effects']}{C.RESET}")
+    confirm = prompt("\n  Confirm deployment? (y/n)")
     if confirm.lower() != "y":
         return
 
     clear()
-    result = simulate_mission(ready, mission_type, gs._diff["damage_multiplier"])
+    result = simulate_mission(ready, mt, adjusted_damage_mult, resolved_success_mod)
     header("AFTER ACTION REPORT")
+    print(f"  Orders: {C.BOLD}{order['name']}{C.RESET}  {C.DIM}({order['effects']}){C.RESET}\n")
     for line in result["events"]:
         print(f"  {line}")
 
