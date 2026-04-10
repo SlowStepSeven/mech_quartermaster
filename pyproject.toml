@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "mech-quartermaster"
+version = "0.1.0"
+description = "Iron Lance Mechbay Operations — a BattleTech-inspired terminal management game"
+readme = "README.md"
+requires-python = ">=3.12"
+
+[project.scripts]
+mech-quartermaster = "mech_quartermaster.game:run"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,7 +1,7 @@
 """Iron Lance — the original freeplay mercenary campaign."""
 
-from campaigns.base import Campaign, NarrativeEvent
-from data import FINAL_MISSION
+from .base import Campaign, NarrativeEvent
+from ..data import FINAL_MISSION
 
 
 def _victory(gs) -> bool:

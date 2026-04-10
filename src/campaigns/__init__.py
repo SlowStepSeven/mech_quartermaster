@@ -1,5 +1,0 @@
-from campaigns.iron_lance import IRON_LANCE_CAMPAIGN
-
-ALL_CAMPAIGNS = [
-    IRON_LANCE_CAMPAIGN,
-]

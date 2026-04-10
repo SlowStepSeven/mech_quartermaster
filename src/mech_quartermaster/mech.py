@@ -3,7 +3,7 @@
 import random
 from dataclasses import dataclass, field
 from typing import Optional
-from data import LOCATIONS, LOC_SHORT, CHASSIS_DATA, WEAPON_NAMES
+from .data import LOCATIONS, LOC_SHORT, CHASSIS_DATA, WEAPON_NAMES
 
 
 @dataclass
