@@ -100,7 +100,7 @@ def clear():
     os.system("cls" if os.name == "nt" else "clear")
 
 def print_mech_overview(mech, show_index: int = None):
-    from data import LOC_SHORT
+    from .data import LOC_SHORT
     prefix = f"[{show_index}] " if show_index is not None else "    "
     status = mech.overall_status
     print(f"  {C.BOLD}{prefix}{mech.callsign:<12}{C.RESET} "
@@ -108,7 +108,7 @@ def print_mech_overview(mech, show_index: int = None):
           f"{mech.tonnage}t  {status_color(status)}")
 
 def print_mech_detail(mech):
-    from data import LOC_SHORT, WEAPON_NAMES
+    from .data import LOC_SHORT, WEAPON_NAMES
     header(f"{mech.callsign}  —  {mech.chassis}  ({mech.tonnage}t {mech.weight_class})")
     print(f"  Pilot: {mech.pilot_name:<20}  Missions: {mech.missions_completed}")
     print(f"  Status: {status_color(mech.overall_status)}")
