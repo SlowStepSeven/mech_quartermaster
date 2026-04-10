@@ -5,7 +5,8 @@ from .mech import Mech
 from .data import MISSION_TYPES, LOCATIONS, CHASSIS_DATA, WEAPON_NAMES
 
 
-def simulate_mission(mechs: list[Mech], mission_type: dict, damage_multiplier: float = 1.0) -> dict:
+def simulate_mission(mechs: list[Mech], mission_type: dict, damage_multiplier: float = 1.0,
+                     success_modifier: float = 0.0) -> dict:
     """
     Simulate a mission. Returns a report dict with:
     - success: bool
@@ -33,7 +34,8 @@ def simulate_mission(mechs: list[Mech], mission_type: dict, damage_multiplier: f
     class_bonus = mission_type.get("class_bonus", {})
     success_chance = (0.60
         + sum(class_bonus.get(m.weight_class, 0.06) for m in ready)
-        - (scale - 0.5) * 0.15)
+        - (scale - 0.5) * 0.15
+        + success_modifier)
     success_chance = min(max(success_chance, 0.05), 0.95)  # clamp 5–95%
     success = random.random() < success_chance
 
