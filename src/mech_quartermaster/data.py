@@ -250,7 +250,7 @@ PARTS_CATALOG = {
     "Structure Brace (Light)":   (1500,  6,  "Internal structure repair, light"),
     "Structure Brace (Medium)":  (2500,  8,  "Internal structure repair, medium"),
     "Structure Brace (Heavy)":   (4000,  12, "Internal structure repair, heavy"),
-    "Structure Brace (Assault)": (7000,  18, "Internal structure repair, assault"),
+    "Structure Brace (Assault)": (7000,  16, "Internal structure repair, assault"),
     # Weapons
     "Machine Gun":    (1200,   1,  "Replace destroyed machine gun"),
     "Small Laser":    (3000,   2,  "Replace destroyed small laser"),
@@ -259,7 +259,7 @@ PARTS_CATALOG = {
     "PPC":            (35000,  12, "Replace destroyed PPC"),
     "AC/5":           (15000,  8,  "Replace destroyed AC/5 autocannon"),
     "AC/10":          (25000,  12, "Replace destroyed AC/10 autocannon"),
-    "AC/20":          (45000,  20, "Replace destroyed AC/20 autocannon"),
+    "AC/20":          (45000,  16, "Replace destroyed AC/20 autocannon"),
     "SRM-4":          (6000,   4,  "Replace destroyed SRM-4 launcher"),
     "SRM-6":          (9000,   6,  "Replace destroyed SRM-6 launcher"),
     "LRM-10":         (12000,  6,  "Replace destroyed LRM-10 launcher"),
