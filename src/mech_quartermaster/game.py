@@ -1,5 +1,7 @@
 """Main game loop and all screen logic."""
 
+import json
+import os
 import random
 from .mech import Mech, Inventory
 from .data import (CHASSIS_DATA, PARTS_CATALOG, MISSION_TYPES, WEAPON_NAMES, MECH_PRICES,
@@ -87,8 +89,13 @@ class GameState:
         self.market_refresh_day: int = 1
         self.overhead_paid = 0
         self.missions_run = 0
+        self.mission_completions: dict[str, int] = {}
         self.fired_events: set[str] = set()
         self.pending_narrative: list[str] = []
+
+    def mission_level(self, mission_name: str) -> int:
+        """Level 1 at start; +1 for every 2 successful completions of that type."""
+        return self.mission_completions.get(mission_name, 0) // 2 + 1
 
     def advance_day(self, hours_spent: int = 0):
         self.tech_hours_used = 0
@@ -572,16 +579,29 @@ def screen_deploy(gs: GameState):
         print(f"\n  {C.BOLD}{C.RED}*** ONE MISSION STANDS BETWEEN YOU AND VICTORY ***{C.RESET}\n")
     section("Available Contracts" + ("  (refresh each day)" if not is_final else ""))
     for i, mt in enumerate(available, 1):
+        level     = gs.mission_level(mt['name'])
+        pay_mult  = 1.35 ** (level - 1)
+        dmg_mult  = 1.20 ** (level - 1)
         min_pay, max_pay = mt["c_bill_reward"]
+        scaled_min = int(min_pay * pay_mult)
+        scaled_max = int(max_pay * pay_mult)
         salvage_bars = '█' * int(mt['salvage_scale'] * 2.5)
-        damage_bars  = '█' * int(mt['damage_scale'] * 5)
+        damage_bars  = '█' * int(mt['damage_scale'] * dmg_mult * 5)
         wreck_bars   = '█' * int(mt['mech_salvage_chance'] / 0.50 * 6)
         cb = mt["class_bonus"]
         bonus_str = "  ".join(
             f"{cls[0]}:{int(cb[cls]*100)}%" for cls in ["Light","Medium","Heavy","Assault"]
         )
-        print(f"  [{C.CYAN}{i}{C.RESET}] {C.BOLD}{mt['name']:<10}{C.RESET}  {mt['description']}")
-        print(f"      Pay:     {C.GREEN}{min_pay:>10,} – {max_pay:,}c{C.RESET}")
+        if level == 1:
+            lvl_color, lvl_label = C.DIM, f"LVL {level}"
+        elif level <= 3:
+            lvl_color, lvl_label = C.YELLOW, f"LVL {level} ▲"
+        else:
+            lvl_color, lvl_label = C.RED, f"LVL {level} ▲▲"
+        print(f"  [{C.CYAN}{i}{C.RESET}] {C.BOLD}{mt['name']:<10}{C.RESET}  "
+              f"{mt['description']}  {lvl_color}{lvl_label}{C.RESET}")
+        pay_suffix = f"  {C.DIM}(×{pay_mult:.2f} difficulty){C.RESET}" if level > 1 else ""
+        print(f"      Pay:     {C.GREEN}{scaled_min:>10,} – {scaled_max:,}c{C.RESET}{pay_suffix}")
         print(f"      Salvage: {C.YELLOW}{salvage_bars:<6}{C.RESET}  "
               f"Wreck: {C.BLUE}{wreck_bars:<6}{C.RESET}  "
               f"Damage risk: {C.RED}{damage_bars}{C.RESET}")
@@ -629,16 +649,20 @@ def screen_deploy(gs: GameState):
         resolved_success_mod = order["success_mod"]
 
     # Build a modified copy of mission_type so the originals are unchanged
+    level          = gs.mission_level(mission_type['name'])
+    level_pay_mult = 1.35 ** (level - 1)
+    level_dmg_mult = 1.20 ** (level - 1)
+
     mt = dict(mission_type)
     min_pay, max_pay = mt["c_bill_reward"]
     mt["c_bill_reward"] = (
-        int(min_pay * order["reward_mult"]),
-        int(max_pay * order["reward_mult"]),
+        int(min_pay * order["reward_mult"] * level_pay_mult),
+        int(max_pay * order["reward_mult"] * level_pay_mult),
     )
     mt["salvage_scale"]       = mt["salvage_scale"]       * order["salvage_mult"]
     mt["mech_salvage_chance"] = mt["mech_salvage_chance"] * order["salvage_mult"]
 
-    adjusted_damage_mult = gs._diff["damage_multiplier"] * order["damage_mult"]
+    adjusted_damage_mult = gs._diff["damage_multiplier"] * order["damage_mult"] * level_dmg_mult
 
     print(f"\n  Orders issued: {C.BOLD}{order['name']}{C.RESET}")
     print(f"  {C.DIM}{order['effects']}{C.RESET}")
@@ -705,6 +729,12 @@ def screen_deploy(gs: GameState):
 
     if result["success"]:
         gs.missions_run += 1
+        name = mission_type['name']
+        gs.mission_completions[name] = gs.mission_completions.get(name, 0) + 1
+        new_level = gs.mission_level(name)
+        if new_level > level:
+            print(f"\n  {C.YELLOW}{C.BOLD}CONTRACT DIFFICULTY UP — {name} is now LVL {new_level}! "
+                  f"(+20% damage / +35% pay){C.RESET}")
     gs.event_log.append(
         f"Day {gs.day}: {mission_type['name']} — "
         f"{'SUCCESS' if result['success'] else 'FAILED'} "
@@ -944,6 +974,18 @@ def screen_victory(gs: GameState):
     print(f"\n  {C.BOLD}{C.GREEN}{score:,}{C.RESET}")
     print()
     ui.hr("═")
+
+    # ── Lance save prompt ─────────────────────────────────────────────────────
+    section("Save Lance")
+    existing = _load_lance_data()
+    if existing:
+        print(f"  Existing save: {C.DIM}{_save_summary(existing)}{C.RESET}")
+        save_q = prompt("Save this lance? It will overwrite the existing save. (y/n)")
+    else:
+        save_q = prompt("Save this lance for your next campaign? (y/n)")
+    if save_q.strip().lower() == "y":
+        _save_lance(gs)
+        print(f"  {C.GREEN}Lance saved.{C.RESET}")
     pause()
 
 
@@ -979,6 +1021,63 @@ CALLSIGNS = [
     "Ironside", "Banshee", "Hammer", "Wraith", "Bulldozer",
     "Spectre", "Anvil", "Frostbite", "Hellfire", "Longbow",
 ]
+
+# ─── Lance Save / Load ───────────────────────────────────────────────────────
+
+SAVE_PATH = os.path.join(os.path.expanduser("~"), ".mech_qm_lance.json")
+
+
+def _mech_to_dict(m: Mech) -> dict:
+    return {
+        "chassis": m.chassis,
+        "pilot_name": m.pilot_name,
+        "callsign": m.callsign,
+        "missions_completed": m.missions_completed,
+        "components": {
+            loc: {
+                "armor": comp.armor,
+                "structure": comp.structure,
+                "destroyed_equipment": list(comp.destroyed_equipment),
+            }
+            for loc, comp in m.components.items()
+        },
+    }
+
+
+def _mech_from_dict(d: dict) -> Mech:
+    m = Mech(chassis=d["chassis"], pilot_name=d["pilot_name"], callsign=d["callsign"])
+    m.missions_completed = d.get("missions_completed", 0)
+    # Components start fully repaired — constructor already sets max armor/structure
+    return m
+
+
+def _save_lance(gs: GameState):
+    data = {
+        "company_name": gs.company_name,
+        "credits": gs.inventory.credits,
+        "parts": dict(gs.inventory.parts),
+        "mission_completions": dict(gs.mission_completions),
+        "mechs": [_mech_to_dict(m) for m in gs.mechs],
+    }
+    with open(SAVE_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
+def _load_lance_data() -> dict | None:
+    if not os.path.exists(SAVE_PATH):
+        return None
+    try:
+        with open(SAVE_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _save_summary(data: dict) -> str:
+    names = ", ".join(f"{m['callsign']} ({m['chassis']})" for m in data["mechs"])
+    credits = data.get("credits", 0)
+    return f"{data['company_name']} — {credits:,}c — {names}"
+
 
 def _build_lance(starting_lance) -> list[Mech]:
     """Build starting mechs from a campaign's starting_lance spec."""
@@ -1038,22 +1137,55 @@ def setup_game(campaign: Campaign) -> GameState:
     if not company:
         company = "Iron Lance"
 
-    mechs = _build_lance(campaign.starting_lance)
+    save_data = _load_lance_data()
+    loaded_save = None
+    if save_data:
+        section("Lance Selection")
+        print(f"  [1] New lance")
+        print(f"  [2] Load saved lance — {C.DIM}{_save_summary(save_data)}{C.RESET}")
+        print()
+        while True:
+            lc = prompt("Select (1/2, default 1)").strip()
+            if lc in ("", "1"):
+                mechs = _build_lance(campaign.starting_lance)
+                break
+            if lc == "2":
+                mechs = [_mech_from_dict(m) for m in save_data["mechs"]]
+                loaded_save = save_data
+                break
+            print(f"  {C.YELLOW}Enter 1 or 2.{C.RESET}")
+    else:
+        mechs = _build_lance(campaign.starting_lance)
 
-    inv = Inventory(starting_credits=campaign.starting_credits)
-    for part, qty in campaign.starting_parts.items():
-        inv.add_parts(part, qty)
+    if loaded_save:
+        inv = Inventory(starting_credits=loaded_save["credits"])
+        for part, qty in loaded_save.get("parts", {}).items():
+            inv.add_parts(part, qty)
+    else:
+        inv = Inventory(starting_credits=campaign.starting_credits)
+        for part, qty in campaign.starting_parts.items():
+            inv.add_parts(part, qty)
 
     section("Difficulty")
     for key, cfg in DIFFICULTIES.items():
         color = {"Easy": C.GREEN, "Medium": C.YELLOW, "Hard": C.RED}[key]
         print(f"  {color}{cfg['label']}{C.RESET}")
-    diff_choice = prompt("Select difficulty (E/M/H, default H)").strip().upper()
-    difficulty = {"E": "Easy", "M": "Medium", "H": "Hard"}.get(diff_choice, "Hard")
+    diff_map = {"E": "Easy", "M": "Medium", "H": "Hard"}
+    while True:
+        diff_choice = prompt("Select difficulty (E/M/H, default H)").strip().upper()
+        if diff_choice == "":
+            difficulty = "Hard"
+            break
+        if diff_choice in diff_map:
+            difficulty = diff_map[diff_choice]
+            break
+        print(f"  {C.YELLOW}Invalid choice — enter E, M, or H.{C.RESET}")
     print(f"  Difficulty set: {difficulty}")
 
     gs = GameState(company_name=company, mechs=mechs, inventory=inv,
                    difficulty=difficulty, campaign=campaign)
+    if loaded_save:
+        gs.mission_completions = {k: v for k, v in loaded_save.get("mission_completions", {}).items()}
 
     print(f"\n  {C.GREEN}Welcome, Quartermaster. Your lance is assembled.{C.RESET}")
     print(f"  Campaign:         {campaign.name}")
