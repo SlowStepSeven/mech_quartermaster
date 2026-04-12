@@ -540,36 +540,6 @@ def screen_deploy(gs: GameState):
         pause()
         return
 
-    # Let player pick their lance when more combat-ready mechs than the deploy cap
-    if len(all_ready) > MAX_DEPLOYED:
-        section(f"Select Lance  (choose up to {MAX_DEPLOYED}, e.g. '1 3 4')")
-        print(f"  {'#':<3} {'Callsign':<12} {'Chassis':<24} {'Status'}")
-        hr()
-        for i, m in enumerate(all_ready, 1):
-            print(f"  {i:<3} {m.callsign:<12} {m.chassis:<24} {ui.status_color(m.overall_status)}")
-        while True:
-            raw = prompt(f"Select up to {MAX_DEPLOYED} mechs by number")
-            if not raw:
-                return
-            try:
-                indices = [int(x) - 1 for x in raw.split()]
-            except ValueError:
-                print(f"  {C.RED}Enter space-separated numbers.{C.RESET}")
-                continue
-            if not indices or len(indices) > MAX_DEPLOYED:
-                print(f"  {C.RED}Select between 1 and {MAX_DEPLOYED} mechs.{C.RESET}")
-                continue
-            if len(set(indices)) != len(indices):
-                print(f"  {C.RED}Duplicate selections.{C.RESET}")
-                continue
-            if any(i < 0 or i >= len(all_ready) for i in indices):
-                print(f"  {C.RED}Invalid selection.{C.RESET}")
-                continue
-            ready = [all_ready[i] for i in indices]
-            break
-    else:
-        ready = all_ready
-
     final = gs.campaign.final_mission
     vm = gs.campaign.victory_missions
     is_final = (final is not None and vm is not None and gs.missions_run == vm - 1)
@@ -619,6 +589,39 @@ def screen_deploy(gs: GameState):
         return
 
     mission_type = available[midx]
+
+    # ── Lance Selection ───────────────────────────────────────────────────────
+    if len(all_ready) > MAX_DEPLOYED:
+        section(f"Select Lance  (choose up to {MAX_DEPLOYED}, e.g. '1 3 4')")
+        print(f"  {'#':<3} {'Callsign':<12} {'Chassis':<24} {'Class':<8} {'Status'}")
+        hr()
+        for i, m in enumerate(all_ready, 1):
+            cb = mission_type.get("class_bonus", {})
+            bonus = f"+{int(cb.get(m.weight_class, 0) * 100)}%"
+            print(f"  {i:<3} {m.callsign:<12} {m.chassis:<24} {m.weight_class:<8} "
+                  f"{ui.status_color(m.overall_status)}  {C.DIM}{bonus}{C.RESET}")
+        while True:
+            raw = prompt(f"Select up to {MAX_DEPLOYED} mechs by number")
+            if not raw:
+                return
+            try:
+                indices = [int(x) - 1 for x in raw.split()]
+            except ValueError:
+                print(f"  {C.RED}Enter space-separated numbers.{C.RESET}")
+                continue
+            if not indices or len(indices) > MAX_DEPLOYED:
+                print(f"  {C.RED}Select between 1 and {MAX_DEPLOYED} mechs.{C.RESET}")
+                continue
+            if len(set(indices)) != len(indices):
+                print(f"  {C.RED}Duplicate selections.{C.RESET}")
+                continue
+            if any(i < 0 or i >= len(all_ready) for i in indices):
+                print(f"  {C.RED}Invalid selection.{C.RESET}")
+                continue
+            ready = [all_ready[i] for i in indices]
+            break
+    else:
+        ready = all_ready
 
     # ── Battle Orders ─────────────────────────────────────────────────────────
     clear()
@@ -723,6 +726,7 @@ def screen_deploy(gs: GameState):
         if len(gs.mechs) >= MAX_MECHS:
             _forced_sell_screen(gs, f"{salvaged_chassis} (salvage wreck)")
         gs.mechs.append(wreck)
+        gs.mechs.sort(key=lambda m: m.tonnage)
         print(f"\n  {C.YELLOW}SALVAGED MECH: {salvaged_chassis} assigned callsign '{callsign}'.{C.RESET}")
         print(f"  {C.DIM}Wreck condition — requires full repair before deployment.{C.RESET}")
         gs.event_log.append(f"Day {gs.day}: Salvaged mech wreck — {salvaged_chassis} '{callsign}'")
@@ -914,6 +918,7 @@ def screen_market(gs: GameState):
     if len(gs.mechs) >= MAX_MECHS:
         _forced_sell_screen(gs, f"{chassis} (purchased)")
     gs.mechs.append(new_mech)
+    gs.mechs.sort(key=lambda m: m.tonnage)
 
     print(f"\n  {C.GREEN}Purchase complete!{C.RESET}")
     print(f"  {callsign} ({chassis}) added to roster.")
@@ -1186,6 +1191,7 @@ def setup_game(campaign: Campaign) -> GameState:
                    difficulty=difficulty, campaign=campaign)
     if loaded_save:
         gs.mission_completions = {k: v for k, v in loaded_save.get("mission_completions", {}).items()}
+    gs.mechs.sort(key=lambda m: m.tonnage)
 
     print(f"\n  {C.GREEN}Welcome, Quartermaster. Your lance is assembled.{C.RESET}")
     print(f"  Campaign:         {campaign.name}")
@@ -1200,37 +1206,38 @@ def setup_game(campaign: Campaign) -> GameState:
 # ─── Main Loop ───────────────────────────────────────────────────────────────
 
 def run():
-    campaign = screen_campaign_select()
-    gs = setup_game(campaign)
-    gs._refresh_market()
     while True:
-        # Check end conditions before showing main screen
-        if gs.is_victorious:
-            screen_victory(gs)
-            break
-        if gs.is_bankrupt:
-            screen_game_over(gs, "You have run out of C-Bills. The company cannot pay its debts.")
-            break
-        if gs.lance_destroyed:
-            screen_game_over(gs, "All mechs have been destroyed. The lance is no more.")
-            break
+        campaign = screen_campaign_select()
+        gs = setup_game(campaign)
+        gs._refresh_market()
+        while True:
+            # Check end conditions before showing main screen
+            if gs.is_victorious:
+                screen_victory(gs)
+                break
+            if gs.is_bankrupt:
+                screen_game_over(gs, "You have run out of C-Bills. The company cannot pay its debts.")
+                break
+            if gs.lance_destroyed:
+                screen_game_over(gs, "All mechs have been destroyed. The lance is no more.")
+                break
 
-        action = screen_main(gs)
-        if action == "inspect":
-            screen_inspect(gs)
-        elif action == "repair":
-            screen_repair(gs)
-        elif action == "parts":
-            screen_parts(gs)
-        elif action == "order":
-            screen_order(gs)
-        elif action == "market":
-            screen_market(gs)
-        elif action == "deploy":
-            screen_deploy(gs)
-        elif action == "advance":
-            screen_advance(gs)
-        elif action == "quit":
-            clear()
-            print(f"\n  {C.DIM}Shutting down mechbay systems. Good luck out there.{C.RESET}\n")
-            break
+            action = screen_main(gs)
+            if action == "inspect":
+                screen_inspect(gs)
+            elif action == "repair":
+                screen_repair(gs)
+            elif action == "parts":
+                screen_parts(gs)
+            elif action == "order":
+                screen_order(gs)
+            elif action == "market":
+                screen_market(gs)
+            elif action == "deploy":
+                screen_deploy(gs)
+            elif action == "advance":
+                screen_advance(gs)
+            elif action == "quit":
+                clear()
+                print(f"\n  {C.DIM}Shutting down mechbay systems. Good luck out there.{C.RESET}\n")
+                return
