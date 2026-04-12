@@ -175,6 +175,11 @@ RadioButton:hover {
     padding: 0 1;
 }
 
+.mech-list-panel {
+    width: 40;
+    border: solid #003300;
+}
+
 /* ── Modal dialogs ───────────────────────────────────────────────────────── */
 
 ModalScreen {

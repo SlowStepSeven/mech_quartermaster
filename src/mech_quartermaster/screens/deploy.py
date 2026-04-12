@@ -176,8 +176,8 @@ class DeployScreen(Screen):
                 Text(mt["name"], style="bold"),
                 Text(lvl_label,  style=lvl_style),
                 Text(f"{int(min_pay * pay_mult):,}c", style="green"),
-                Text(bar(int(10 - dmg_mult * mt["damage_scale"] * 5), 10, width=6)),
-                Text(bar(int(mt["salvage_scale"] * 2), 10, width=6), style="yellow"),
+                bar(int(10 - dmg_mult * mt["damage_scale"] * 5), 10, width=6, as_text=True),
+                bar(int(mt["salvage_scale"] * 2), 10, width=6, as_text=True),
                 Text(mt["description"], style="dim"),
             )
 

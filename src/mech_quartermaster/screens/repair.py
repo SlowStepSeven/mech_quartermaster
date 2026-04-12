@@ -20,7 +20,7 @@ class RepairScreen(Screen):
         with Vertical():
             yield Static("", id="tech-header", markup=True, classes="panel-header")
             with Horizontal():
-                with Vertical(style="width: 40"):
+                with Vertical(classes="mech-list-panel"):
                     yield Static("[bold]Select Mech[/]", markup=True, classes="section-title")
                     yield ListView(id="mech-list")
                 with Vertical():
