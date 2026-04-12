@@ -14,9 +14,8 @@ class InspectScreen(Screen):
         self._selected = 0
 
     def compose(self) -> ComposeResult:
-        gs = self.app.gs
         with Horizontal():
-            with Vertical(style="width: 36"):
+            with Vertical(classes="inspect-list-panel"):
                 yield Static("[bold cyan]INSPECT LANCE[/]", markup=True, classes="panel-header")
                 lv = ListView(id="mech-list")
                 yield lv
@@ -25,11 +24,10 @@ class InspectScreen(Screen):
                 yield Static("", id="detail", markup=True)
 
     def on_mount(self) -> None:
-        gs = self.app.gs
         lv = self.query_one("#mech-list", ListView)
-        for m in gs.mechs:
+        for m in self.app.gs.mechs:
             lv.append(ListItem(Label(mech_overview_markup(m), markup=True)))
-        if gs.mechs:
+        if self.app.gs.mechs:
             self._show_detail(0)
 
     def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:

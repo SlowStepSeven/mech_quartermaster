@@ -2,7 +2,6 @@
 
 import random
 from .mech import Mech
-from .data import MISSION_TYPES, LOCATIONS, CHASSIS_DATA, WEAPON_NAMES
 
 
 def simulate_mission(mechs: list[Mech], mission_type: dict, damage_multiplier: float = 1.0,
@@ -55,9 +54,9 @@ def simulate_mission(mechs: list[Mech], mission_type: dict, damage_multiplier: f
     casualties = [m.callsign for m in ready if not m.is_combat_ready and not m.total_loss]
 
     if success:
-        events.append(f"MISSION SUCCESS — Lance completes objectives.")
+        events.append("MISSION SUCCESS — Lance completes objectives.")
     else:
-        events.append(f"MISSION FAILED — Lance forced to withdraw.")
+        events.append("MISSION FAILED — Lance forced to withdraw.")
     events.append(f"Contract payment: {base_reward:,} C-Bills")
 
     if total_losses:

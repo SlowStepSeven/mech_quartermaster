@@ -5,7 +5,7 @@ import os
 from textual.app import App
 from textual.message import Message
 
-from .game import GameState, _save_lance
+from .game import GameState
 
 
 def _css_path() -> str:

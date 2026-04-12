@@ -2,13 +2,12 @@
 
 from textual.app import ComposeResult
 from textual.screen import Screen, ModalScreen
-from textual.widgets import Button, DataTable, Input, Label, Static
+from textual.widgets import Button, DataTable, Input, Static
 from textual.containers import Horizontal, Vertical
 from rich.text import Text
 
 from textual import work
 from ..game import _part_sell_price
-from ..data import PARTS_CATALOG
 
 
 class ConfirmModal(ModalScreen[bool]):

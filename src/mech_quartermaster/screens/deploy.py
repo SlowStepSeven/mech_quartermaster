@@ -4,19 +4,17 @@ import random
 from textual.app import ComposeResult
 from textual.screen import Screen, ModalScreen
 from textual.widgets import (
-    Button, ContentSwitcher, DataTable, Label, SelectionList,
-    Static, ListItem, ListView,
+    Button, ContentSwitcher, DataTable, SelectionList, Static,
 )
 from textual.widgets.selection_list import Selection
-from textual.containers import Horizontal, Vertical, VerticalScroll, ScrollableContainer
+from textual.containers import Horizontal, Vertical, ScrollableContainer
 from rich.text import Text
 
 from textual import work
 from ..game import (
-    BATTLE_ORDERS, MAX_DEPLOYED, PILOT_NAMES, CALLSIGNS,
+    BATTLE_ORDERS, MAX_DEPLOYED,
     _mech_sell_price, _run_mission, _new_callsign_pilot,
 )
-from ..data import CHASSIS_DATA, MECH_PRICES
 from ..mech import Mech
 from ..ui import mech_overview_markup, bar, status_text
 
@@ -189,7 +187,6 @@ class DeployScreen(Screen):
             )
 
     def _build_step1(self) -> None:
-        gs = self.app.gs
         self.query_one("#lance-context", Static).update(
             f"  Contract: [bold]{self._contract['name']}[/]"
         )

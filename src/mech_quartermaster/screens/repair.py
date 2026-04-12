@@ -7,7 +7,6 @@ from textual.containers import Horizontal, Vertical
 from rich.text import Text
 
 from ..game import _do_repair, _repair_jobs
-from ..ui import mech_overview_markup, status_text
 
 
 class RepairScreen(Screen):
