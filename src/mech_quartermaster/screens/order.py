@@ -20,11 +20,12 @@ class OrderScreen(Screen):
                 "  [dim]Orders arrive in 1–4 days depending on part type.[/]",
                 markup=True,
             )
-            yield DataTable(id="catalog", cursor_type="row")
+            with Vertical(classes="fill-height"):
+                yield DataTable(id="catalog", cursor_type="row")
             with Horizontal():
                 yield Input(placeholder="Quantity", id="qty-input")
                 yield Button("Place Order", id="order")
-                yield Button("Back",        id="back")
+            yield Button("Back", id="back")
             yield Static("", id="status-line", markup=True)
 
     def on_mount(self) -> None:

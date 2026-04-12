@@ -21,11 +21,11 @@ class CampaignSelectScreen(Screen):
                          markup=True)
             for i, camp in enumerate(ALL_CAMPAIGNS):
                 yield Button(
-                    f"[bold]{camp.name}[/]  [dim]{camp.description}[/]",
+                    f"{camp.name}  —  {camp.description}",
                     id=f"camp_{i}",
                 )
             yield Static("")
-            yield Button("Quit", id="quit", classes="-danger")
+            yield Button("Quit", id="quit", classes="-quit")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "quit":

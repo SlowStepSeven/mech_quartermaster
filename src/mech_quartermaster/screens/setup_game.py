@@ -53,10 +53,17 @@ class SetupGameScreen(Screen):
             with RadioSet(id="difficulty"):
                 for key, cfg in DIFFICULTIES.items():
                     color = {"Easy": "green", "Medium": "yellow", "Hard": "red"}[key]
-                    yield RadioButton(cfg['label'], value=(key == "Hard"))
+                    yield RadioButton(cfg['label'], value=(key == "Medium"))
             yield Static("")
             yield Button("Begin Campaign", id="begin")
             yield Button("Back", id="back")
+
+    def on_mount(self) -> None:
+        # Move RadioSet cursor to Medium — highlight defaults to index 0 (Easy) otherwise
+        diff_keys = list(DIFFICULTIES.keys())
+        medium_idx = diff_keys.index("Medium")
+        rs = self.query_one("#difficulty", RadioSet)
+        rs._selected = medium_idx
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "back":

@@ -6,6 +6,7 @@ from textual.widgets import Button, DataTable, Input, Label, Static
 from textual.containers import Horizontal, Vertical
 from rich.text import Text
 
+from textual import work
 from ..game import _part_sell_price
 from ..data import PARTS_CATALOG
 
@@ -35,14 +36,15 @@ class PartsScreen(Screen):
     def compose(self) -> ComposeResult:
         with Vertical():
             yield Static("", id="cred-header", markup=True, classes="panel-header")
-            yield Static("[bold]In Stock[/]", markup=True, classes="section-title")
-            yield DataTable(id="stock-table", cursor_type="row")
-            yield Static("[bold]Pending Orders[/]", markup=True, classes="section-title")
-            yield DataTable(id="orders-table", cursor_type="none")
+            with Vertical(classes="fill-height"):
+                yield Static("[bold]In Stock[/]", markup=True, classes="section-title")
+                yield DataTable(id="stock-table", cursor_type="row")
+                yield Static("[bold]Pending Orders[/]", markup=True, classes="section-title")
+                yield DataTable(id="orders-table", cursor_type="none")
             with Horizontal():
                 yield Input(placeholder="Quantity to sell", id="qty-input")
                 yield Button("Sell Selected", id="sell")
-                yield Button("Back",          id="back")
+            yield Button("Back", id="back")
             yield Static("", id="status-line", markup=True)
 
     def on_mount(self) -> None:
@@ -86,13 +88,14 @@ class PartsScreen(Screen):
                 Text(f"Day {order['arrive_day']}"),
             )
 
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
+    def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "back":
             self.app.pop_screen()
-            return
-        if event.button.id != "sell":
-            return
+        elif event.button.id == "sell":
+            self._do_sell()
 
+    @work
+    async def _do_sell(self) -> None:
         gs = self.app.gs
         tbl = self.query_one("#stock-table", DataTable)
         row = tbl.cursor_row
@@ -109,7 +112,7 @@ class PartsScreen(Screen):
             self.query_one("#status-line", Static).update("[red]Enter a valid quantity.[/]")
             return
 
-        name    = self._part_names[row]
+        name     = self._part_names[row]
         in_stock = gs.inventory.parts.get(name, 0)
         if qty > in_stock:
             self.query_one("#status-line", Static).update(
@@ -129,4 +132,4 @@ class PartsScreen(Screen):
             self.query_one("#status-line", Static).update(
                 f"[green]✓ Sold {qty}x {name} for {total:,}c[/]"
             )
-            self._rebuild()
+            self.call_after_refresh(self._rebuild)

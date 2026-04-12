@@ -11,6 +11,7 @@ from textual.widgets.selection_list import Selection
 from textual.containers import Horizontal, Vertical, VerticalScroll, ScrollableContainer
 from rich.text import Text
 
+from textual import work
 from ..game import (
     BATTLE_ORDERS, MAX_DEPLOYED, PILOT_NAMES, CALLSIGNS,
     _mech_sell_price, _run_mission, _new_callsign_pilot,
@@ -91,10 +92,11 @@ class DeployScreen(Screen):
                 with Vertical(id="step0"):
                     yield Static("", id="readiness", markup=True)
                     yield Static("[bold]Available Contracts[/]", markup=True, classes="section-title")
-                    yield DataTable(id="contract-table", cursor_type="row")
-                    with Horizontal():
-                        yield Button("Select Contract →", id="select-contract", classes="-deploy")
-                        yield Button("Cancel",            id="cancel0", classes="-danger")
+                    with Vertical(classes="fill-height"):
+                        yield DataTable(id="contract-table", cursor_type="row")
+                        yield Static("", id="mission-desc", markup=True, classes="mission-desc")
+                    yield Button("Select Contract →", id="select-contract", classes="-deploy")
+                    yield Button("← Back", id="cancel0")
 
                 # Step 1 — Lance selection (shown only when > MAX_DEPLOYED ready)
                 with Vertical(id="step1"):
@@ -105,7 +107,7 @@ class DeployScreen(Screen):
                     )
                     yield SelectionList(id="lance-list")
                     with Horizontal():
-                        yield Button("Confirm Lance →", id="confirm-lance", classes="-deploy")
+                        yield Button("Confirm Lance →", id="confirm-lance", classes="-confirm")
                         yield Button("← Back",         id="back1")
 
                 # Step 2 — Battle orders
@@ -116,15 +118,16 @@ class DeployScreen(Screen):
                         yield Button(
                             f"{order['name']}  |  {order['effects']}\n  {order['description']}",
                             id=f"order_{i}",
+                            classes="tall-button",
                         )
                     yield Button("← Back", id="back2")
 
                 # Step 3 — AAR
                 with Vertical(id="step3"):
                     yield Static("", id="aar-header", markup=True)
+                    yield Button("Return to Command", id="done", classes="-deploy")
                     with ScrollableContainer(classes="aar-log"):
                         yield Static("", id="aar-body", markup=True)
-                    yield Button("Return to Command", id="done", classes="-deploy")
 
     # ── Mount ────────────────────────────────────────────────────────────────
 
@@ -153,12 +156,12 @@ class DeployScreen(Screen):
         tbl = self.query_one("#contract-table", DataTable)
         tbl.clear()
         if not tbl.columns:
-            tbl.add_column("Mission",    key="name",    width=14)
-            tbl.add_column("Level",      key="lvl",     width=8)
-            tbl.add_column("Pay (min)",  key="pay",     width=16)
-            tbl.add_column("Damage",     key="dmg",     width=8)
-            tbl.add_column("Salvage",    key="salv",    width=8)
-            tbl.add_column("Description", key="desc",   width=34)
+            tbl.add_column("Mission",   key="name",  width=18)
+            tbl.add_column("Level",     key="lvl",   width=8)
+            tbl.add_column("Pay (min)", key="pay",   width=16)
+            tbl.add_column("Damage",    key="dmg",   width=8)
+            tbl.add_column("Salvage",   key="salv",  width=8)
+            tbl.add_column("Wreck%",    key="wreck", width=12)
 
         final = gs.campaign.final_mission
         vm    = gs.campaign.victory_missions
@@ -172,13 +175,17 @@ class DeployScreen(Screen):
             min_pay, _ = mt["c_bill_reward"]
             lvl_style = "dim" if level == 1 else ("yellow" if level <= 3 else "red")
             lvl_label = f"LVL {level}" + ("" if level == 1 else " ▲" if level <= 3 else " ▲▲")
+            wreck_chance = mt.get("mech_salvage_chance", 0)
+            wreck_bar = bar(wreck_chance, 0.5, width=6, as_text=True)
+            wreck_pct = Text(f" {int(wreck_chance * 100)}%", style="cyan")
+            wreck_cell = wreck_bar + wreck_pct
             tbl.add_row(
                 Text(mt["name"], style="bold"),
                 Text(lvl_label,  style=lvl_style),
                 Text(f"{int(min_pay * pay_mult):,}c", style="green"),
-                bar(int(10 - dmg_mult * mt["damage_scale"] * 5), 10, width=6, as_text=True),
-                bar(int(mt["salvage_scale"] * 2), 10, width=6, as_text=True),
-                Text(mt["description"], style="dim"),
+                bar(min(10, int(dmg_mult * mt["damage_scale"] * 5)), 10, width=6, as_text=True),
+                bar(mt["salvage_scale"], 7, width=6, as_text=True),
+                wreck_cell,
             )
 
     def _build_step1(self) -> None:
@@ -206,6 +213,17 @@ class DeployScreen(Screen):
 
     # ── Navigation ────────────────────────────────────────────────────────────
 
+    def on_data_table_row_highlighted(self, event) -> None:
+        """Update mission description as the cursor moves in the contract table."""
+        if self._step != 0:
+            return
+        row = event.cursor_row
+        if 0 <= row < len(self._available):
+            mt = self._available[row]
+            self.query_one("#mission-desc", Static).update(
+                f"  [dim]{mt['description']}[/]"
+            )
+
     def _show_step(self, step: int) -> None:
         self._step = step
         self.query_one("#switcher", ContentSwitcher).current = f"step{step}"
@@ -219,7 +237,7 @@ class DeployScreen(Screen):
 
     # ── Button handler ────────────────────────────────────────────────────────
 
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
+    def on_button_pressed(self, event: Button.Pressed) -> None:
         bid = event.button.id
 
         # ── Step 0 ──────────────────────────────────────────────────────────
@@ -271,7 +289,7 @@ class DeployScreen(Screen):
         if bid and bid.startswith("order_"):
             oidx = int(bid.split("_")[1])
             self._order = BATTLE_ORDERS[oidx]
-            await self._execute_mission()
+            self._execute_mission()
             return
 
         # ── Step 3 ──────────────────────────────────────────────────────────
@@ -280,6 +298,7 @@ class DeployScreen(Screen):
 
     # ── Mission execution ─────────────────────────────────────────────────────
 
+    @work
     async def _execute_mission(self) -> None:
         gs = self.app.gs
         mt       = self._contract

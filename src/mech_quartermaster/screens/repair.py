@@ -19,31 +19,44 @@ class RepairScreen(Screen):
     def compose(self) -> ComposeResult:
         with Vertical():
             yield Static("", id="tech-header", markup=True, classes="panel-header")
-            with Horizontal():
+            with Horizontal(classes="fill-height"):
                 with Vertical(classes="mech-list-panel"):
                     yield Static("[bold]Select Mech[/]", markup=True, classes="section-title")
                     yield ListView(id="mech-list")
                 with Vertical():
                     yield Static("[bold]Repair Jobs[/]", markup=True, classes="section-title")
                     yield DataTable(id="jobs-table", cursor_type="row")
-                    with Horizontal(classes="modal-buttons"):
+                    with Horizontal(classes="repair-buttons"):
                         yield Button("Repair Selected", id="repair-one")
                         yield Button("Repair All",      id="repair-all")
-                        yield Button("Back",            id="back", classes="-danger")
+                        yield Button("Back",            id="back")
             yield Static("", id="status-line", markup=True)
 
-    def on_mount(self) -> None:
+    def _mech_list_label(self, m) -> str:
+        status = m.overall_status
+        if status == "COMBAT READY":
+            color = "green"
+        elif status in ("MINOR DAMAGE", "MODERATE DAMAGE"):
+            color = "yellow"
+        else:
+            color = "red"
+        return f"[bold {color}]{m.callsign:<12}[/] [{color}]{status}[/]"
+
+    def _rebuild_mech_list(self) -> None:
         gs = self.app.gs
         lv = self.query_one("#mech-list", ListView)
+        lv.clear()
         for m in gs.mechs:
-            lv.append(ListItem(Label(mech_overview_markup(m), markup=True)))
+            lv.append(ListItem(Label(self._mech_list_label(m), markup=True)))
 
+    def on_mount(self) -> None:
         tbl = self.query_one("#jobs-table", DataTable)
         tbl.add_column("Job",       key="label", width=32)
         tbl.add_column("Part",      key="part",  width=28)
         tbl.add_column("Stock",     key="stock", width=6)
         tbl.add_column("Hours",     key="hours", width=6)
 
+        self._rebuild_mech_list()
         self._update_tech_header()
 
     def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
@@ -95,6 +108,7 @@ class RepairScreen(Screen):
             msg = f"[green]✓ {job['label']} — done[/]" if ok else "[red]✗ Cannot repair (check parts/hours)[/]"
             self.query_one("#status-line", Static).update(msg)
             self._update_tech_header()
+            self._rebuild_mech_list()
             self._rebuild_jobs_table()
 
     def _do_all(self) -> None:
@@ -111,6 +125,7 @@ class RepairScreen(Screen):
             f"[green]✓ {done} repair(s) completed[/]" if done else "[yellow]No repairs possible[/]"
         )
         self._update_tech_header()
+        self._rebuild_mech_list()
         self._rebuild_jobs_table()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:

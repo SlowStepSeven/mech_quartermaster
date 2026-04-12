@@ -40,4 +40,4 @@ class MechQMApp(App):
 
 
 def main() -> None:
-    MechQMApp().run()
+    MechQMApp().run(size=(180, 45))

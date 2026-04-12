@@ -1,6 +1,7 @@
 """Mech market screen — buy and sell mechs."""
 
 import random
+from textual import work
 from textual.app import ComposeResult
 from textual.screen import Screen, ModalScreen
 from textual.widgets import Button, DataTable, Static
@@ -66,9 +67,12 @@ class ForcedSellModal(ModalScreen[int]):
                 Text(f"{self._offers[m.callsign]:,}c", style="yellow"),
             )
 
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id != "sell":
-            return
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "sell":
+            self._do_sell()
+
+    @work
+    async def _do_sell(self) -> None:
         gs = self.app.gs
         tbl = self.query_one("#sell-tbl", DataTable)
         row = tbl.cursor_row
@@ -83,14 +87,14 @@ class ForcedSellModal(ModalScreen[int]):
             gs.inventory.credits += offer
             gs.mechs.remove(mech)
             gs.event_log.append(f"Day {gs.day}: Sold {mech.callsign} ({mech.chassis}) for {offer:,}c")
-            self.dismiss(row)
+            await self.dismiss(row)
 
 
 class MarketScreen(Screen):
     def compose(self) -> ComposeResult:
         with Vertical():
             yield Static("", id="market-header", markup=True, classes="panel-header")
-            with Horizontal():
+            with Horizontal(classes="fill-height"):
                 with Vertical():
                     yield Static("[bold]Available Mechs[/]", markup=True, classes="section-title")
                     yield DataTable(id="buy-table", cursor_type="row")
@@ -153,15 +157,15 @@ class MarketScreen(Screen):
                 Text(f"{self._sell_offers[m.callsign]:,}c", style="yellow"),
             )
 
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
+    def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "back":
             self.app.pop_screen()
-            return
-        if event.button.id == "buy":
-            await self._do_buy()
+        elif event.button.id == "buy":
+            self._do_buy()
         elif event.button.id == "sell":
-            await self._do_sell()
+            self._do_sell()
 
+    @work
     async def _do_buy(self) -> None:
         gs = self.app.gs
         tbl = self.query_one("#buy-table", DataTable)
@@ -207,8 +211,9 @@ class MarketScreen(Screen):
         self.query_one("#status-line", Static).update(
             f"[green]✓ Purchased {chassis} — callsign '{callsign}', pilot {pilot}[/]"
         )
-        self._rebuild()
+        self.call_after_refresh(self._rebuild)
 
+    @work
     async def _do_sell(self) -> None:
         gs = self.app.gs
         tbl = self.query_one("#sell-table", DataTable)
@@ -238,4 +243,4 @@ class MarketScreen(Screen):
             self.query_one("#status-line", Static).update(
                 f"[green]✓ Sold {mech.callsign} for {offer:,}c[/]"
             )
-            self._rebuild()
+            self.call_after_refresh(self._rebuild)

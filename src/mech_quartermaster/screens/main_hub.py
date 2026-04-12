@@ -24,9 +24,9 @@ class MainHubScreen(Screen):
                 yield Button("Parts Inventory", id="parts")
                 yield Button("Order Parts",     id="order")
                 yield Button("Mech Market",     id="market")
-                yield Button("Deploy Lance",    id="deploy", classes="-deploy")
+                yield Button("Deploy Lance",    id="deploy")
                 yield Button("End Day",         id="advance")
-                yield Button("Quit",            id="quit", classes="-danger")
+                yield Button("Quit",            id="quit", classes="-quit")
 
     def on_screen_resume(self) -> None:
         self._check_end_conditions()
