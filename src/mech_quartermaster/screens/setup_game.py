@@ -3,7 +3,7 @@
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Button, Input, Label, RadioButton, RadioSet, Static
-from textual.containers import Vertical, VerticalScroll
+from textual.containers import VerticalScroll
 
 from ..campaigns.base import Campaign
 from ..game import (
@@ -52,7 +52,6 @@ class SetupGameScreen(Screen):
             )
             with RadioSet(id="difficulty"):
                 for key, cfg in DIFFICULTIES.items():
-                    color = {"Easy": "green", "Medium": "yellow", "Hard": "red"}[key]
                     yield RadioButton(cfg['label'], value=(key == "Medium"))
             yield Static("")
             yield Button("Begin Campaign", id="begin")

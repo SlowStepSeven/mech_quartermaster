@@ -9,10 +9,10 @@ from textual.containers import Horizontal, Vertical
 from rich.text import Text
 
 from ..game import (
-    PILOT_NAMES, CALLSIGNS, MAX_MECHS,
+    MAX_MECHS,
     _mech_sell_price, _new_callsign_pilot,
 )
-from ..data import CHASSIS_DATA, MECH_PRICES
+from ..data import CHASSIS_DATA
 from ..mech import Mech
 from ..ui import status_text
 

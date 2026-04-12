@@ -2,8 +2,7 @@
 
 import random
 from dataclasses import dataclass, field
-from typing import Optional
-from .data import LOCATIONS, LOC_SHORT, CHASSIS_DATA, WEAPON_NAMES
+from .data import LOCATIONS, CHASSIS_DATA, WEAPON_NAMES
 
 
 @dataclass
@@ -172,8 +171,6 @@ class Mech:
 
     def summary_line(self) -> str:
         status = self.overall_status
-        ct = self.components["Center Torso"]
-        armor_pct = int(ct.armor_pct * 100)
         return (f"{self.callsign:<12} | {self.chassis:<24} | "
                 f"{self.tonnage}t {self.weight_class:<7} | {status}")
 
