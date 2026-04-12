@@ -1,0 +1,226 @@
+/* Mech Quartermaster — terminal green-on-black aesthetic */
+
+Screen {
+    background: #0a0a0a;
+    color: #00cc00;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+Button {
+    background: #001800;
+    color: #00cc00;
+    border: tall #004400;
+    width: 100%;
+    content-align: left middle;
+}
+
+Button:hover {
+    background: #003000;
+    border: tall #00aa00;
+}
+
+Button:focus {
+    background: #004000;
+    border: tall #00ff00;
+    color: #00ff00;
+}
+
+Button.-danger {
+    color: #ff4444;
+    border: tall #660000;
+}
+
+Button.-deploy {
+    color: #ffcc00;
+    border: tall #886600;
+    background: #1a1000;
+}
+
+Button.-deploy:hover {
+    background: #2a1800;
+    border: tall #ccaa00;
+}
+
+/* ── Inputs ──────────────────────────────────────────────────────────────── */
+
+Input {
+    background: #050505;
+    border: tall #004400;
+    color: #00cc00;
+}
+
+Input:focus {
+    border: tall #00ff00;
+}
+
+/* ── DataTable ───────────────────────────────────────────────────────────── */
+
+DataTable {
+    background: #0a0a0a;
+    color: #aaffaa;
+    height: auto;
+}
+
+DataTable > .datatable--header {
+    background: #001a00;
+    color: #00ff41;
+    text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+    background: #003300;
+    color: #00ff00;
+}
+
+DataTable > .datatable--hover {
+    background: #001800;
+}
+
+/* ── ListView ────────────────────────────────────────────────────────────── */
+
+ListView {
+    background: #0a0a0a;
+    border: solid #004400;
+}
+
+ListItem {
+    background: #0a0a0a;
+    color: #00cc00;
+    padding: 0 1;
+}
+
+ListItem:hover {
+    background: #001800;
+}
+
+ListView > ListItem.--highlight {
+    background: #003300;
+    color: #00ff00;
+}
+
+/* ── SelectionList ───────────────────────────────────────────────────────── */
+
+SelectionList {
+    background: #0a0a0a;
+    border: solid #004400;
+    color: #00cc00;
+}
+
+/* ── RadioSet ────────────────────────────────────────────────────────────── */
+
+RadioSet {
+    background: #0a0a0a;
+    border: solid #004400;
+    padding: 0 1;
+}
+
+RadioButton {
+    background: #0a0a0a;
+    color: #00cc00;
+}
+
+RadioButton:hover {
+    background: #001800;
+}
+
+/* ── Static / labels ─────────────────────────────────────────────────────── */
+
+.panel-header {
+    background: #001a00;
+    color: #00ff41;
+    text-style: bold;
+    padding: 0 1;
+    height: 1;
+}
+
+.stat-bar {
+    color: #00cc00;
+    padding: 0 1;
+    height: 1;
+}
+
+.section-title {
+    color: #00ff41;
+    text-style: bold;
+    padding: 0 1;
+    height: 1;
+}
+
+.event-log {
+    color: #555555;
+    padding: 0 1;
+}
+
+.narrative {
+    color: #ffcc00;
+    padding: 0 1;
+}
+
+/* ── Layout panels ───────────────────────────────────────────────────────── */
+
+.content-panel {
+    border: solid #003300;
+    padding: 0 1;
+}
+
+.menu-panel {
+    width: 32;
+    border: solid #003300;
+    padding: 1;
+}
+
+.detail-panel {
+    border: solid #003300;
+    padding: 0 1;
+}
+
+/* ── Modal dialogs ───────────────────────────────────────────────────────── */
+
+ModalScreen {
+    align: center middle;
+    background: rgba(0,0,0,0.7);
+}
+
+.modal-dialog {
+    background: #050505;
+    border: double #006600;
+    width: 64;
+    height: auto;
+    padding: 1 2;
+}
+
+.modal-title {
+    text-style: bold;
+    color: #00ff41;
+    text-align: center;
+    padding: 0 0 1 0;
+}
+
+.modal-buttons {
+    height: 3;
+    align: center middle;
+    padding-top: 1;
+}
+
+.modal-buttons Button {
+    width: 14;
+    margin: 0 1;
+}
+
+/* ── Scrollable containers ───────────────────────────────────────────────── */
+
+ScrollableContainer {
+    background: #0a0a0a;
+    border: solid #003300;
+    padding: 0 1;
+}
+
+/* ── AAR (After Action Report) ───────────────────────────────────────────── */
+
+.aar-log {
+    background: #050505;
+    border: solid #003300;
+    padding: 0 1;
+    height: 1fr;
+}

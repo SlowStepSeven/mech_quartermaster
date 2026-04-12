@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 
 [project.scripts]
-mech-quartermaster = "mech_quartermaster.game:run"
+mech-quartermaster = "mech_quartermaster.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
